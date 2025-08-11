@@ -110,7 +110,10 @@ const App = () => {
             return (
               <div
                 key={index}
-                className="w-[280px] bg-[#c7c7c7] shadow-2xl p-[10px] flex flex-col gap-1 rounded-[20px]"
+                className="w-[280px] bg-[#c7c7c7] shadow-2xl p-[10px] flex flex-col gap-1 rounded-[20px] cursor-pointer"
+                onClick={() => {
+                  alert("Hello");
+                }}
               >
                 <h1 className="text-[#555555] font-[700] text-[20px]">
                   Name: <span className="text-blue-900">{item.Name}</span>
