@@ -2,8 +2,9 @@ import axios from "axios";
 import React, { useEffect, useState } from "react";
 import "./App.css";
 import { IPostOffice } from "./helpers/types";
-import { Dialog, Slide } from "@mui/material";
+import { Dialog, Pagination, Slide } from "@mui/material";
 import { TransitionProps } from "@mui/material/transitions";
+import { usePaginate } from "./hooks/usePaginate";
 
 const Transition = React.forwardRef(function Transition(
   props: TransitionProps & {
@@ -32,15 +33,43 @@ const App = () => {
   const [error, setError] = useState<string>("");
   const [hasSearched, setHasSearched] = useState<boolean>(false);
 
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [
+    pageSize,
+    //setPageSize
+  ] = useState<number>(10);
+  const [paginatePostOffices, setPaginatePostOffices] = useState<IPostOffice[]>(
+    []
+  );
+  const [filterTheStatusOfDelivering, setFilterTheStatusOfDelivering] =
+    useState<string>("");
+
+  const handlePostOfficeClick = (item: IPostOffice) => {
+    setChosenPostOffice(item);
+    setModalPostOffice(true);
+  };
+
+  const handleChangePage = (__: any, newPage: number) => {
+    setCurrentPage(newPage);
+  };
+
+  const pagesCount = Math.floor(postOffices.length / pageSize);
+
   async function getPostOfficesBySearching(
     pincode: string,
     postOffice: string
   ) {
     if (!pincode && !postOffice) {
       setPostOffices([]);
-      setHasSearched(false);
+      setHasSearched(false); // This is correct
+      setCurrentPage(1); // Reset to first page
       return;
     }
+
+    console.log(pincode, postOffice);
+    
+    
 
     setLoading(true);
     setHasSearched(true);
@@ -79,10 +108,9 @@ const App = () => {
     return () => clearTimeout(timer);
   }, [inpSearchByPincodeValue, inpSearchByPostOfficeValue]);
 
-  const handlePostOfficeClick = (item: IPostOffice) => {
-    setChosenPostOffice(item);
-    setModalPostOffice(true);
-  };
+  useEffect(() => {
+    setPaginatePostOffices(usePaginate(postOffices, currentPage, pageSize));
+  }, [currentPage, postOffices]);
 
   return (
     <div className="app_component">
@@ -97,8 +125,8 @@ const App = () => {
               className="outline-none p-[5px_20px] rounded-[20px] bg-[#0f0f47] text-[#fff] max-w-[280px] placeholder:text-[#fff]"
               placeholder="Search by pincode"
               value={inpSearchByPincodeValue}
-              onChange={(e) => {
-                const value = e.target.value;
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                const value = event.target.value;
                 if (value === "" || /^[0-9]*$/.test(value)) {
                   setInpSearchByPincodeValue(value);
                   setInpSearchByPostOfficeValue("");
@@ -110,39 +138,70 @@ const App = () => {
               className="outline-none p-[5px_20px] rounded-[20px] bg-[#0f0f47] text-[#fff] max-w-[280px] placeholder:text-[#fff]"
               placeholder="Search by post office"
               value={inpSearchByPostOfficeValue}
-              onChange={(e) => {
-                setInpSearchByPostOfficeValue(e.target.value);
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                setInpSearchByPostOfficeValue(event.target.value);
                 setInpSearchByPincodeValue("");
               }}
             />
+            {postOffices.length === 0 &&
+            (inpSearchByPincodeValue === "" ||
+              inpSearchByPostOfficeValue) ? null : (
+              <select
+                name=""
+                id="filter_delivery_status"
+                className="outline-none p-[5px_20px] rounded-[20px] bg-[#0f0f47] text-[#fff] max-w-[280px] cursor-pointer"
+                onChange={(event) =>
+                  setFilterTheStatusOfDelivering(event.target.value)
+                }
+              >
+                <option value="">All</option>
+                <option value="Non-Delivery">Not Delivered</option>
+                <option value="Delivery">Delivered</option>
+              </select>
+            )}
           </div>
         </header>
       </div>
 
-      <section className="section flex flex-wrap justify-center gap-4 mt-3 max-w-5xl mx-auto">
+      <section className="section flex flex-wrap justify-center gap-4 mt-6 max-w-5xl mx-auto">
         {loading ? (
           <div className="loader"></div>
+        ) : (inpSearchByPincodeValue.trim().length >= 1 &&
+            inpSearchByPincodeValue.length < 6) ||
+          (inpSearchByPincodeValue.trim().length >= 1 &&
+            inpSearchByPincodeValue.length > 6) ? (
+          <h1 className="text-red-500">The pincode has to be 6 digits</h1>
         ) : error ? (
           <div className="text-red-500">{error}</div>
         ) : hasSearched && postOffices.length === 0 ? (
           <div>No post offices found</div>
         ) : !hasSearched ? (
           <div>Enter pincode or post office name to search</div>
-        ) : (
-          postOffices.map((item, index) => (
-            <div
-              key={index}
-              className="w-[280px] bg-[#c7c7c7] shadow-2xl p-[10px] flex flex-col gap-1 rounded-[20px] cursor-pointer hover:shadow-lg transition-shadow"
-              onClick={() => handlePostOfficeClick(item)}
-            >
-              <h1 className="text-[#555555] font-[700] text-[20px]">
-                Name: <span className="text-blue-900">{item.Name}</span>
-              </h1>
-              <h1 className="text-[#444343] font-[700] text-[16px]">
-                Country: {item.Country}
-              </h1>
-            </div>
-          ))
+        )  : (
+          paginatePostOffices
+            .filter((item) => {
+              if (filterTheStatusOfDelivering === "Non-Delivery") {
+                return item.DeliveryStatus === filterTheStatusOfDelivering;
+              } else if (filterTheStatusOfDelivering === "Delivery") {
+                return item.DeliveryStatus === filterTheStatusOfDelivering;
+              } else {
+                return item;
+              }
+            })
+            .map((item, index) => (
+              <div
+                key={index}
+                className="w-[280px] bg-[#c7c7c7] shadow-2xl p-[10px] flex flex-col gap-1 rounded-[20px] cursor-pointer hover:shadow-lg transition-shadow"
+                onClick={() => handlePostOfficeClick(item)}
+              >
+                <h1 className="text-[#555555] font-[700] text-[20px]">
+                  Name: <span className="text-blue-900">{item.Name}</span>
+                </h1>
+                <h1 className="text-[#444343] font-[700] text-[16px]">
+                  Country: {item.Country}
+                </h1>
+              </div>
+            ))
         )}
 
         <Dialog
@@ -153,7 +212,7 @@ const App = () => {
             sx: {
               borderRadius: "20px",
               padding: "10px",
-              minWidth: "300px",
+              minWidth: "280px",
             },
           }}
         >
@@ -162,7 +221,7 @@ const App = () => {
               <h2 className="text-xl font-bold">Post Office Details</h2>
               <button
                 onClick={() => setModalPostOffice(false)}
-                className="text-2xl hover:text-gray-600"
+                className="text-3xl hover:text-gray-600"
               >
                 &times;
               </button>
@@ -208,6 +267,14 @@ const App = () => {
           </div>
         </Dialog>
       </section>
+      <div className="block_pagination flex justify-center mt-6">
+        <Pagination
+          count={pagesCount}
+          page={currentPage}
+          onChange={handleChangePage}
+          color="secondary"
+        />
+      </div>
     </div>
   );
 };
