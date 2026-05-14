@@ -201,7 +201,7 @@ const App = () => {
                 .map((item, index) => (
                   <div
                     key={index}
-                    className="w-[280px] bg-[#c7c7c7] shadow-2xl p-[10px] flex flex-col gap-1 rounded-[20px] cursor-pointer hover:shadow-lg transition-shadow"
+                    className="w-[280px] bg-[#fff] hover:bg-[#dddddd] shadow-2xl p-[10px] flex flex-col gap-1 rounded-[20px] cursor-pointer hover:shadow-lg transition-all duration-300"
                     onClick={() => handlePostOfficeClick(item)}
                   >
                     <h1 className="text-[#555555] font-[700] text-[20px]">
